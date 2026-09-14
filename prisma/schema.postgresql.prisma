@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  role         String     @default("USER") // USER | ADMIN
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  documents    Document[]
+
+  @@map("users")
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  icon        String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  templates   Template[]
+
+  @@map("categories")
+}
+
+model Template {
+  id              String     @id @default(cuid())
+  title           String
+  slug            String     @unique
+  description     String
+  categoryId      String
+  category        Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  contentTemplate String     @db.Text
+  fieldsSchema    String     @db.Text // JSON definition of form fields
+  isPopular       Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  documents       Document[]
+
+  @@map("templates")
+}
+
+model Document {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId       String
+  template         Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title            String
+  status           String   @default("GENERATED") // DRAFT | GENERATED
+  formData         String   @db.Text // JSON of submitted field values
+  generatedContent String   @db.Text // Final formatted pre-legal document
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@index([templateId])
+  @@map("documents")
+}
